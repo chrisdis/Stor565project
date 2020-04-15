@@ -1,0 +1,89 @@
+---
+title: "wine_exploration"
+author: "Chris DiSerafino"
+date: "4/14/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(neuralnet)
+library(ggplot2)
+knitr::opts_chunk$set(echo = TRUE)
+reds <- read.csv("winequality-red.csv", sep = ";")
+whites <- read.csv("winequality-white.csv", sep = ";")
+```
+
+## R Markdown
+
+Research question: how well can we classify a wine as red or white using neural networks? Does the number of hidden units or layers matter? How does starting values or scaling effect our results? The risk function of neural networks is not convex. Which method of finding a global minima is most effective in this instance?
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r, include =TRUE}
+set.seed(13)
+#head(reds)
+#head(whites)
+
+whites[,13] = -1
+reds[,13] = 1
+wines = rbind(whites, reds)
+wines = wines %>% rename("type" = "V13")
+head(wines)
+
+max = apply(wines, 2 , max)
+min = apply(wines, 2 , min)
+wines = as.data.frame(scale(wines, center = min, scale = max - min))
+
+training_size = round(.75 * nrow(wines))
+indices = sample(1:nrow(wines), training_size)
+training_set = wines[indices,]
+testing_set = wines[-(indices),]
+
+
+NN = neuralnet(type ~ ., training_set, hidden = 3 , linear.output = F )
+
+# plot neural network
+plot(NN)
+
+```
+```{r}
+predict_testNN = compute(NN, testing_set[,c(1:12)])
+predict_testNN = predict_testNN$net.result
+
+predicted_labels = c();
+predicted_labels = (predict_testNN[,1] >= 0.5) *1
+
+# Calculate Risk
+nn_risk = sum(testing_set$type == predicted_labels)/length(predicted_labels)
+if (nn_risk >= 0.5) {
+  nn_risk = 1 - nn_risk
+}
+nn_risk_test = nn_risk
+
+predict_testNN = compute(NN, training_set[,c(1:12)])
+predict_testNN = predict_testNN$net.result
+
+predicted_labels = c();
+predicted_labels = (predict_testNN[,1] >= 0.5) *1
+
+# Calculate Risk
+nn_risk = sum(training_set$type == predicted_labels)/length(predicted_labels)
+if (nn_risk >= 0.5) {
+  nn_risk = 1 - nn_risk
+}
+nn_risk_train = nn_risk
+
+model = c(1, 1)
+error = c(nn_risk_train, nn_risk_test)
+data = c("train", "test")
+total_error = data.frame(cbind(model, error, data))
+
+ggplot(total_error) + 
+  geom_boxplot(aes( x = model, y = error, color = data)) +
+  ggtitle("Testing and Training Error Rate of Models")
+```
+
