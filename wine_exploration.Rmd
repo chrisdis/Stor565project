@@ -18,8 +18,6 @@ whites <- read.csv("winequality-white.csv", sep = ";")
 
 Research question: how well can we classify a wine as red or white using neural networks? Does the number of hidden units or layers matter? How does starting values or scaling effect our results? The risk function of neural networks is not convex. Which method of finding a global minima is most effective in this instance?
 
-I am adding a change to this file, and pushing the updated version to github.
-
 ## Including Plots
 
 You can also embed plots, for example:
