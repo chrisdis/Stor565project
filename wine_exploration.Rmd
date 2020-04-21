@@ -25,11 +25,12 @@ set.seed(13)
 head(reds) #look at red wines
 head(whites) #look at white wines
 
-whites[,13] = -1
+whites[,13] = 0
 reds[,13] = 1
 wines = rbind(whites, reds)
 #data set to classify wines by quality
 quality_wines = wines 
+quality_response = quality_wines[,12]
 #data set to classify wines by color
 wines = wines %>% rename("type" = "V13")
 color_wines = wines[,c(1:11,13)]
@@ -51,8 +52,46 @@ pcs = prcomp(color_predict)
 
 #Summarize the pcs
 summary(pcs)
+screeplot(pcs, type = "lines", main = "Variance explained by PC")
 
+plot(pcs$x[,1], 
+      main = paste("PC", eval(1)), 
+      xlab = "Sample Index",
+      ylab = paste("PC", eval(1), "score"), 
+      col = color_response + 1)
 
+#first pc seems to do most of work in seperating by wine color
+
+plot(pcs$x[,1:2], 
+     main = "Biplot of Wine Data by Color", 
+     xlab = "PC 1", ylab = "PC 2",
+     col = color_response + 1)
+barplot(table(color_response), col = unique(color_response + 1), legend.text = c("white", "red"))
+
+plot(pcs$x[,1], 
+      main = paste("PC", eval(1)), 
+      xlab = "Sample Index",
+      ylab = paste("PC", eval(1), "score"), 
+      col = quality_response)
+
+plot(pcs$x[,1:2], 
+     main = "Biplot of Wine Data by Quality", 
+     xlab = "PC 1", ylab = "PC 2",
+     col = quality_response)
+barplot(table(quality_response), col = unique(quality_response))
+
+#only show first two pcs because they account for most of variance
+k.pca = kmeans(pcs$x[,1:2], centers = 2)
+cluster_update = as.factor(k.pca$cluster)
+x <- pcs$x
+ggplot() +
+  geom_point(aes(x = x[,1], y = x[,2], col = cluster_update))+
+  xlab("First PC") + 
+  ylab("Second PC") +
+  scale_colour_discrete(name = "Cluster") +
+  ggtitle("First Two PCs of Gene Data; Colored by Cluster of first 2 PCs")
+
+#clustering using kmeans with 2 centers seems to be a good approximation of color
 ```
 
 Analysis: One PC explains over 95 percent of the variance, and two PCs explain over 99 percent of the variance! This is something we should definitely mention, we can plot to two dimensions and still have most of the variance accounted for
