@@ -18,21 +18,48 @@ whites <- read.csv("winequality-white.csv", sep = ";")
 
 Research question: how well can we classify a wine as red or white using neural networks? Does the number of hidden units or layers matter? How does starting values or scaling effect our results? The risk function of neural networks is not convex. Which method of finding a global minima is most effective in this instance?
 
-## Including Plots
-
-You can also embed plots, for example:
+## Explore Data
 
 ```{r, include =TRUE}
 set.seed(13)
-#head(reds)
-#head(whites)
+head(reds) #look at red wines
+head(whites) #look at white wines
 
 whites[,13] = -1
 reds[,13] = 1
 wines = rbind(whites, reds)
+#data set to classify wines by quality
+quality_wines = wines 
+#data set to classify wines by color
 wines = wines %>% rename("type" = "V13")
-head(wines)
+color_wines = wines[,c(1:11,13)]
+color_predict = color_wines[,1:11]
+color_response = color_wines[,12]
+head(quality_wines)
+head(color_wines)
 
+#look at distribution of wine quality
+ggplot(wines) + 
+  geom_histogram(aes(x = quality), binwidth = 1) +
+  ggtitle("Histogram of wine quality")
+
+#how would we want to classify these wines?
+
+
+#Run a PCA
+pcs = prcomp(color_predict)
+
+#Summarize the pcs
+summary(pcs)
+
+
+```
+
+Analysis: One PC explains over 95 percent of the variance, and two PCs explain over 99 percent of the variance! This is something we should definitely mention, we can plot to two dimensions and still have most of the variance accounted for
+
+## Create Neural Network
+
+```{r}
 max = apply(wines, 2 , max)
 min = apply(wines, 2 , min)
 wines = as.data.frame(scale(wines, center = min, scale = max - min))
@@ -49,6 +76,8 @@ NN = neuralnet(type ~ ., training_set, hidden = 3 , linear.output = F )
 plot(NN)
 
 ```
+
+
 ```{r}
 predict_testNN = compute(NN, testing_set[,c(1:12)])
 predict_testNN = predict_testNN$net.result
