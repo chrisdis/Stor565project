@@ -10,8 +10,9 @@ library(dplyr)
 library(neuralnet)
 library(ggplot2)
 knitr::opts_chunk$set(echo = TRUE)
-reds <- read.csv("winequality-red.csv", sep = ";")
-whites <- read.csv("winequality-white.csv", sep = ";")
+wines <- read.csv("wines.csv")
+quality_wines <- read.csv("wine_quality.csv")
+color_wines <- read.csv("wine_color.csv")
 ```
 
 ## R Markdown
@@ -22,20 +23,6 @@ Research question: how well can we classify a wine as red or white using neural 
 
 ```{r, include =TRUE}
 set.seed(13)
-head(reds) #look at red wines
-head(whites) #look at white wines
-
-whites[,13] = 0
-reds[,13] = 1
-wines = rbind(whites, reds)
-#data set to classify wines by quality
-quality_wines = wines 
-quality_response = quality_wines[,12]
-#data set to classify wines by color
-wines = wines %>% rename("type" = "V13")
-color_wines = wines[,c(1:11,13)]
-color_predict = color_wines[,1:11]
-color_response = color_wines[,12]
 head(quality_wines)
 head(color_wines)
 

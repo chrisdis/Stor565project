@@ -1,0 +1,20 @@
+```{r}
+reds <- read.csv("winequality-red.csv", sep = ";")
+whites <- read.csv("winequality-white.csv", sep = ";")
+
+whites[,13] = 0
+reds[,13] = 1
+wines = rbind(whites, reds)
+#data set to classify wines by quality
+quality_wines = wines 
+quality_response = quality_wines[,12]
+#data set to classify wines by color
+wines = wines %>% rename("type" = "V13")
+color_wines = wines[,c(1:11,13)]
+color_predict = color_wines[,1:11]
+color_response = color_wines[,12]
+
+write.csv(quality_wines, file = "wine_quality.csv")
+write.csv(color_wines, file = "wine_color.csv")
+```
+
