@@ -23,13 +23,15 @@ Research question: how well can we classify a wine as red or white using neural 
 ## Explore Data
 
 ```{r, include =TRUE}
-color_predict = color_wines[,2:12]
-color_response = color_wines[,13]
+color_wines = color_wines[,2:13]
+color_predict = color_wines[,1:11]
+color_response = color_wines[,12]
 
-quality_predict = quality_wines[,2:12]
-quality_response = quality_wines[,13]
+quality_wines = quality_wines[,2:13]
+quality_predict = quality_wines[,1:11]
+quality_response = quality_wines[,12]
 
-wines = wines[,2:13]
+wines = wines[,2:14]
 
 set.seed(13)
 head(quality_wines)
@@ -95,9 +97,9 @@ Analysis: One PC explains over 95 percent of the variance, and two PCs explain o
 ## Create Neural Network
 
 ```{r}
-max = apply(wines, 2 , max)
-min = apply(wines, 2 , min)
-wines = as.data.frame(scale(wines, center = min, scale = max - min))
+max = apply(color_wines, 2 , max)
+min = apply(color_wines, 2 , min)
+wines = as.data.frame(scale(color_wines, center = min, scale = max - min))
 
 training_size = round(.75 * nrow(wines))
 indices = sample(1:nrow(wines), training_size)

@@ -1,4 +1,11 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 ```{r}
+library(dplyr)
+
 reds <- read.csv("winequality-red.csv", sep = ";")
 whites <- read.csv("winequality-white.csv", sep = ";")
 
