@@ -6,6 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
+rm(list = ls())
 library(dplyr)
 library(neuralnet)
 library(ggplot2)
@@ -22,6 +23,14 @@ Research question: how well can we classify a wine as red or white using neural 
 ## Explore Data
 
 ```{r, include =TRUE}
+color_predict = color_wines[,2:12]
+color_response = color_wines[,13]
+
+quality_predict = quality_wines[,2:12]
+quality_response = quality_wines[,13]
+
+wines = wines[,2:13]
+
 set.seed(13)
 head(quality_wines)
 head(color_wines)
