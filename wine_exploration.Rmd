@@ -97,17 +97,19 @@ Analysis: One PC explains over 95 percent of the variance, and two PCs explain o
 ## Create Neural Network
 
 ```{r}
+set.seed(13)
 max = apply(color_wines, 2 , max)
 min = apply(color_wines, 2 , min)
-wines = as.data.frame(scale(color_wines, center = min, scale = max - min))
+color_wines = as.data.frame(scale(color_wines, center = min, scale = max - min))
 
-training_size = round(.75 * nrow(wines))
-indices = sample(1:nrow(wines), training_size)
-training_set = wines[indices,]
-testing_set = wines[-(indices),]
+training_size = round(.75 * nrow(color_wines))
+indices = sample(1:nrow(color_wines), training_size)
+training_set = color_wines[indices,]
+testing_set = color_wines[-(indices),]
 
 
-NN = neuralnet(type ~ ., training_set, hidden = 3 , linear.output = F )
+
+NN = neuralnet(type ~ ., training_set, hidden = 3 , linear.output = F)
 
 # plot neural network
 plot(NN)
@@ -129,11 +131,11 @@ if (nn_risk >= 0.5) {
 }
 nn_risk_test = nn_risk
 
-predict_testNN = compute(NN, training_set[,c(1:12)])
-predict_testNN = predict_testNN$net.result
+predict_trainNN = compute(NN, training_set[,c(1:12)])
+predict_trainNN = predict_trainNN$net.result
 
 predicted_labels = c();
-predicted_labels = (predict_testNN[,1] >= 0.5) *1
+predicted_labels = (predict_trainNN[,1] >= 0.5) *1
 
 # Calculate Risk
 nn_risk = sum(training_set$type == predicted_labels)/length(predicted_labels)
@@ -151,4 +153,39 @@ ggplot(total_error) +
   geom_boxplot(aes( x = model, y = error, color = data)) +
   ggtitle("Testing and Training Error Rate of Models")
 ```
+
+
+```{r}
+set.seed(13)
+max = apply(quality_wines, 2 , max)
+min = apply(quality_wines, 2 , min)
+scaled_wines = as.data.frame(scale(quality_wines, center = min, scale = max - min))
+
+training_size = round(.75 * nrow(scaled_wines))
+indices = sample(1:nrow(scaled_wines), training_size)
+training_set = scaled_wines[indices,]
+testing_set = scaled_wines[-(indices),]
+
+
+
+NN.quality = neuralnet(quality ~ ., training_set, hidden = 3 , linear.output = T)
+
+# plot neural network
+plot(NN.quality)
+
+predict_test = compute(NN.quality, testing_set[,c(1:11)])
+predict_test = (predict_test$net.result * (max(quality_wines$quality) - min(quality_wines$quality))) + min(quality_wines$quality)
+testing_quality = as.factor(quality_wines[-(indices),"quality"])
+
+ggplot() +
+  geom_boxplot(mapping = aes(testing_quality, predict_test))
+               #col='blue', pch=16, ylab = "predicted rating NN", xlab = "real #rating")
+
+#abline(0,1)
+
+# Calculate Root Mean Square Error (RMSE)
+RMSE = (sum((testing_set$quality - predict_test)^2) / nrow(testing_set)) ^ 0.5
+RMSE
+```
+
 
