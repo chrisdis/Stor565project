@@ -1,6 +1,6 @@
 ---
 title: "wine_exploration"
-author: "Chris DiSerafino"
+author: "Chris DiSerafino, Harrison Kmiec, Catherine Ryu"
 date: "4/14/2020"
 output: pdf_document
 ---
@@ -14,6 +14,10 @@ knitr::opts_chunk$set(echo = TRUE)
 wines <- read.csv("wines.csv")
 quality_wines <- read.csv("wine_quality.csv")
 color_wines <- read.csv("wine_color.csv")
+
+#these datasets are created in a seperate script file, 
+#we did this because one of our group members was having trouble
+#loading the dataset
 ```
 
 ## R Markdown
@@ -76,7 +80,7 @@ plot(pcs$x[,1:2],
      main = "Biplot of Wine Data by Quality", 
      xlab = "PC 1", ylab = "PC 2",
      col = quality_response)
-barplot(table(quality_response), col = unique(quality_response))
+barplot(table(quality_response), col = unique(quality_response - 2))
 
 #only show first two pcs because they account for most of variance
 k.pca = kmeans(pcs$x[,1:2], centers = 2)
@@ -98,19 +102,24 @@ Analysis: One PC explains over 95 percent of the variance, and two PCs explain o
 
 ```{r}
 set.seed(13)
+#NN to predict color
+#min max normalization
 max = apply(color_wines, 2 , max)
 min = apply(color_wines, 2 , min)
 color_wines = as.data.frame(scale(color_wines, center = min, scale = max - min))
 
+#divide into training set and testing set
 training_size = round(.75 * nrow(color_wines))
 indices = sample(1:nrow(color_wines), training_size)
 training_set = color_wines[indices,]
 testing_set = color_wines[-(indices),]
 
+NN = neuralnet(type ~ citric.acid + alcohol + chlorides, training_set, hidden = 3 , linear.output = F)
 
+#simpler model
+plot(NN)
 
 NN = neuralnet(type ~ ., training_set, hidden = 3 , linear.output = F)
-
 # plot neural network
 plot(NN)
 
@@ -124,7 +133,7 @@ predict_testNN = predict_testNN$net.result
 predicted_labels = c();
 predicted_labels = (predict_testNN[,1] >= 0.5) *1
 
-# Calculate Risk
+# Calculate test Risk
 nn_risk = sum(testing_set$type == predicted_labels)/length(predicted_labels)
 if (nn_risk >= 0.5) {
   nn_risk = 1 - nn_risk
@@ -137,7 +146,7 @@ predict_trainNN = predict_trainNN$net.result
 predicted_labels = c();
 predicted_labels = (predict_trainNN[,1] >= 0.5) *1
 
-# Calculate Risk
+# Calculate train Risk
 nn_risk = sum(training_set$type == predicted_labels)/length(predicted_labels)
 if (nn_risk >= 0.5) {
   nn_risk = 1 - nn_risk
@@ -149,18 +158,28 @@ error = c(nn_risk_train, nn_risk_test)
 data = c("train", "test")
 total_error = data.frame(cbind(model, error, data))
 
+#plot risk
 ggplot(total_error) + 
-  geom_boxplot(aes( x = model, y = error, color = data)) +
-  ggtitle("Testing and Training Error Rate of Models")
+  geom_col(aes( x = model, y = error, color = data), position = position_dodge()) +
+  ggtitle("Testing and Training Error Rate of Model for Wine Type")
 ```
 
 
 ```{r}
-set.seed(13)
+#Neural Network to predict quality
+#good and poor quality divide
+quality_wines$good = NA
+quality_wines$good[quality_wines[,12] > 5] = 1
+quality_wines$good[quality_wines[,12] <= 5] = 0
+quality_wines = quality_wines[,-(12)]
+
+#min max normalization
+set.seed(14)
 max = apply(quality_wines, 2 , max)
 min = apply(quality_wines, 2 , min)
 scaled_wines = as.data.frame(scale(quality_wines, center = min, scale = max - min))
 
+#divide into training set and testing set
 training_size = round(.75 * nrow(scaled_wines))
 indices = sample(1:nrow(scaled_wines), training_size)
 training_set = scaled_wines[indices,]
@@ -168,24 +187,78 @@ testing_set = scaled_wines[-(indices),]
 
 
 
-NN.quality = neuralnet(quality ~ ., training_set, hidden = 3 , linear.output = T)
+#NN.quality = neuralnet(good ~ ., training_set, hidden = 3, act.fct = "tanh", linear.output = FALSE)
+
+#this function is very inconsistent, I believe the tanh activation
+#function is creating errors in back propogation for this dataset
+#prevents document from knitting so I am replacing with another
+#neural network
+
+
+NN.quality = neuralnet(good ~ ., training_set, hidden = 2, linear.output = FALSE)
+
+NN.lin = neuralnet(good ~ ., training_set, hidden = 3, linear.output = FALSE)
 
 # plot neural network
-plot(NN.quality)
+#plot(NN.quality)
 
-predict_test = compute(NN.quality, testing_set[,c(1:11)])
-predict_test = (predict_test$net.result * (max(quality_wines$quality) - min(quality_wines$quality))) + min(quality_wines$quality)
-testing_quality = as.factor(quality_wines[-(indices),"quality"])
+predict_test = compute(NN.quality, testing_set[,c(1:12)])
+predict_lin = compute(NN.lin, testing_set[,c(1:12)])
+#predict_test = (predict_test$net.result * (max(quality_wines$quality) - min(quality_wines$quality))) + min(quality_wines$quality)
+#testing_quality = as.factor(quality_wines[-(indices),"quality"])
 
-ggplot() +
-  geom_boxplot(mapping = aes(testing_quality, predict_test))
-               #col='blue', pch=16, ylab = "predicted rating NN", xlab = "real #rating")
 
-#abline(0,1)
+#for tclassification 
+predicted_labels = (predict_test$net.result[,1] >= 0.5) *1
+predicted_labels_lin = (predict_lin$net.result[,1] >= 0.5) *1
 
-# Calculate Root Mean Square Error (RMSE)
-RMSE = (sum((testing_set$quality - predict_test)^2) / nrow(testing_set)) ^ 0.5
-RMSE
+# Calculate Test Risk for both models
+nn_risk = sum(testing_set$good == predicted_labels)/length(predicted_labels)
+if (nn_risk >= 0.5) {
+  nn_risk = 1 - nn_risk
+}
+nn_risk_test = nn_risk
+
+nn_risk2 = sum(testing_set$good == predicted_labels_lin)/length(predicted_labels_lin)
+if (nn_risk2 >= 0.5) {
+  nn_risk2 = 1 - nn_risk2
+}
+nn_risk_test2 = nn_risk2
+
+predict_train = compute(NN.quality, training_set[,c(1:12)])
+predict_train = predict_train$net.result
+
+predict_train_lin = compute(NN.lin, training_set[,c(1:12)])
+predict_train_lin = predict_train_lin$net.result
+
+predicted_labels = c();
+predicted_labels = (predict_train[,1] >= 0.5) *1
+
+# Calculate Train Risk for both models
+nn_risk = sum(training_set$good == predicted_labels)/length(predicted_labels)
+if (nn_risk >= 0.5) {
+  nn_risk = 1 - nn_risk
+}
+nn_risk_train = nn_risk
+
+predicted_labels_lin = (predict_train_lin[,1] >= 0.5) *1
+
+# Calculate Risk
+nn_risk2 = sum(training_set$good == predicted_labels_lin)/length(predicted_labels_lin)
+if (nn_risk2 >= 0.5) {
+  nn_risk2 = 1 - nn_risk2
+}
+nn_risk_train2 = nn_risk2
+
+model = c(1, 1, 2, 2)
+error = c(nn_risk_train, nn_risk_test, nn_risk_train2, nn_risk_test2)
+data = c("train", "test", "train", "test")
+total_error = data.frame(cbind(model, error, data))
+
+#plot errors
+ggplot(total_error) + 
+  geom_col(aes(x = model, y = error, color = data), position = position_dodge()) +
+  ggtitle("Testing and Training Error Rate of Models")
 ```
 
 
